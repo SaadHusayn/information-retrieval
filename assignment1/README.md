@@ -6,6 +6,7 @@ This project builds an inverted index and positional index for the speech datase
 
 - `preprocessing.py`: Reads dataset files, preprocesses text, builds indexes, and saves them to disk.
 - `main.py`: Loads saved indexes and runs query-time retrieval.
+- `app.py`: Streamlit GUI for querying and viewing matching document content.
 - `requirements.txt`: Python dependencies.
 - `stopwords.txt`: Stopword list used during preprocessing.
 
@@ -58,6 +59,22 @@ python main.py
 ```
 
 Then type a query and press Enter.
+
+## Run Streamlit GUI
+
+After building indexes with `preprocessing.py`, run:
+
+```bash
+streamlit run app.py
+```
+
+Then open the local URL shown in terminal (usually `http://localhost:8501`).
+
+In the GUI you can:
+- Read guidance on supported query syntax.
+- Enter a query and run search.
+- View matching document IDs.
+- Expand each result to view full document text.
 
 ## Query Examples
 
