@@ -1,74 +1,32 @@
-#preprocessing -> tokenization, case folding, removing stop words, stemming
-#and then inverted index and positional index
-#only start with second line, remove square brackets content
 import re
-import linecache
+import pickle
+import sys
+from pathlib import Path
+
 from nltk.stem.porter import PorterStemmer
-from sortedcontainers import SortedDict, SortedList
 
 
-NUM_DOCUMENTS = 56
-SPEECH_CONTENT_LINE_NO = 2
-ALL_DOCUMENT_IDS_SET = set(range(0,56))
-# UNNECESSARY_DASH1 = '—'
-# UNNECESSARY_DASH2 = '–'
-
-
-inverted_index = SortedDict()
-positional_index = SortedDict()
+INDEX_FILE = Path("indexes") / "index_data.pkl"
 porter_stemmer = PorterStemmer()
-stopwords = []
-with open('stopwords.txt', 'r') as file:
-    stopwords = [line.strip() for line in file]
 
-'''
-    inverted_index = {"term1": 1->4->5 ,
-                      "term2: 1->4->44,...}
-                      
-    positional_index = {"term1": {1: 3->5->3,
-                                  4: 2->8->88}
-                         "term2": {1: 3->5->3,
-                                  9: 2->8->88}...}
-                                  
-    sorted insert, and search
-                                  
-'''
 
- 
-def documentProcessing(document_content):
-    #truecasing
-    document_content = document_content.lower()
-    
-    #removing text in square brackets that are no speech eg [Applause]
-    document_content = re.sub(r'\[.*?\]', '', document_content)
-    
-    #removing punctuations: replacing .:,- with (space) and removing '?"
-    trans_table = str.maketrans(".:,-—–", "      ", "'\"?$0123456789()")
-    tokens = document_content.translate(trans_table).split()
-    
-    #removing stop words
-    tokens = [token for token in tokens if token not in stopwords]
-    
-    #stemming using porter stemmer
-    tokens = [porter_stemmer.stem(token) for token in tokens]
-    
-    return tokens
+def loadIndexes(index_file_path):
+    if not index_file_path.exists():
+        print(f"Index file not found: {index_file_path}")
+        print("Run preprocessing.py first to build the indexes.")
+        sys.exit(1)
 
-def addTokensToInvertedIndex(document_tokens, document_id):
-    for token in document_tokens:
-        if inverted_index.get(token) == None:
-            inverted_index[token] = SortedList([document_id])
-        else:
-            inverted_index[token].add(document_id)
+    with open(index_file_path, "rb") as file:
+        saved_data = pickle.load(file)
 
-def addTokensToPositionalIndex(document_tokens, document_id):
-    for index, token in enumerate(document_tokens):
-        if positional_index.get(token) == None:
-            positional_index[token] = SortedDict({document_id: SortedList([index])})
-        elif positional_index[token].get(document_id) == None:
-            positional_index[token][document_id] = SortedList([index])
-        else:
-            positional_index[token][document_id].add(index)
+    return (
+        saved_data["inverted_index"],
+        saved_data["positional_index"],
+        saved_data["all_document_ids"],
+    )
+
+
+inverted_index, positional_index, ALL_DOCUMENT_IDS_SET = loadIndexes(INDEX_FILE)
 
 def preprocessQuery(query):
     # Ensure brackets are split as standalone tokens: "(term" -> "(" "term"
@@ -92,6 +50,9 @@ def preprocessQuery(query):
     return preprocessed_tokens
 
 def isValidQuery(preprocessed_query):
+    if len(preprocessed_query) == 0:
+        return False
+
     #positional query
     if len(preprocessed_query) == 4 and preprocessed_query[2] == '/' and preprocessed_query[3].isdecimal():
         return True
@@ -216,7 +177,7 @@ def getRelevantDocumentIDs(preprocessed_query):
                 perform_and = False
             else:
                 #if a word appears
-                if inverted_index.get(term) != None:
+                if inverted_index.get(term) is not None:
                     term_documents = set(inverted_index[term])
                     if perform_not:
                         term_documents = ALL_DOCUMENT_IDS_SET - term_documents
@@ -231,24 +192,11 @@ def getRelevantDocumentIDs(preprocessed_query):
             idx += 1
     return result_set
 
-
-def preProccessingPipeline():
-    # for document_id in range(0, NUM_DOCUMENTS):
-    for document_id in range(0, NUM_DOCUMENTS):
-        document_path = 'dataset/speech_' + str(document_id) + '.txt'
-        document_content = linecache.getline(document_path, SPEECH_CONTENT_LINE_NO)
-        if document_content:
-            document_tokens = documentProcessing(document_content)
-            
-            #removing duplicates for inverted index
-            addTokensToInvertedIndex(list(set(document_tokens)), document_id)
-            
-            addTokensToPositionalIndex(document_tokens, document_id)
-
 if __name__ == "__main__":
-    preProccessingPipeline()
     query = input()
     preprocessed_query = preprocessQuery(query)
     if isValidQuery(preprocessed_query):
         document_ids = getRelevantDocumentIDs(preprocessed_query)
         print(document_ids)
+    else:
+        print("Invalid query")
