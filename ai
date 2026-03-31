@@ -1,0 +1,283 @@
+import random
+
+n = 4
+def calculate_fitness(individual):
+    non_attacking_pairs = 0
+    
+    for i in range(0, n):
+        for j in range(i+1, n):
+            if individual[i] != individual[j] and abs(individual[i] - individual[j]) != abs(i-j):
+                non_attacking_pairs += 1
+    
+    return non_attacking_pairs
+
+# print(calculate_fitness([1, 0, 3, 2]))
+
+def create_random_individual():
+    return random.sample(range(n), n)
+population_size = 10
+population = [create_random_individual() for _ in range(population_size)]
+
+# print(population)
+
+fitness_scores = [calculate_fitness(individual) for individual in population]
+# print(fitness_scores)
+
+def select_parents(population, fitness_scores):
+    sorted_population = [board for _, board in sorted(zip(fitness_scores, population), reverse=True)]
+    return sorted_population[:len(sorted_population)//2]
+
+parents = select_parents(population, fitness_scores)
+# print('parents selected',parents)
+
+def crossover(parent1, parent2):
+    point = random.randint(1, n-2)
+    child = parent1[:point] + parent2[point:]
+    
+    
+    missing = set(range(n)) - set(child)
+    
+    for i in range(len(child)):
+        if child.count(child[i]) > 1:
+            child[i] = missing.pop()
+    
+    return child
+
+new_population = []
+
+for i in range(population_size):
+    parent1, parent2 = random.sample(parents, 2)
+    child = crossover(parent1, parent2)
+    new_population.append(child)
+
+# print('new population: ', new_population)
+
+def mutate(individual):
+    idx1, idx2 = random.sample(range(n), 2)
+    individual[idx1], individual[idx2] = individual[idx2], individual[idx1]
+    return individual
+
+mutation_rate = 0.1
+for i in range(len(new_population)):
+    if random.random() < mutation_rate:
+        new_population[i] = mutate(new_population[i])
+
+# print('population after mutation: ', new_population)
+
+def genetic_algorithm():
+    population = [create_random_individual() for _ in range(population_size)]
+    generation = 0
+    best_fitness = 0
+    best_individual = None
+    max_fitness = n*(n-1) // 2
+    
+    while best_fitness <= max_fitness and generation < 100:
+        fitness_scores = [calculate_fitness(individual) for individual in population]
+        
+        max_index = fitness_scores.index(max(fitness_scores))
+        best_fitness = fitness_scores[max_index]
+        best_individual = population[max_index]
+        
+        print(f"Generation: {generation}: Best Individual: {best_individual}, Best Fitness Score: {best_fitness}")
+        
+        parents = select_parents(population, fitness_scores)
+        
+        new_population = []
+        
+        for _ in range(population):
+            parent1, parent2 = random.sample(parents, 2)
+            child = crossover(parent1, parent2)
+            new_population.append(child)
+            
+        for i in range(len(new_population)):
+            if random.random() < mutation_rate:
+                new_population[i] = mutate(new_population[i])
+        
+        population = new_population
+        generation += 1
+
+def genetic_algorithm():
+    population = [create_random_individual() for _ in range(population_size)]
+    generation = 0
+    best_fitness = 0
+    best_individual = None
+    max_fitness = n * (n - 1) // 2
+
+    while best_fitness < max_fitness and generation < 100:
+        fitness_scores = [calculate_fitness(individual) for individual in population]
+
+        max_index = fitness_scores.index(max(fitness_scores))
+        best_fitness = fitness_scores[max_index]
+        best_individual = population[max_index]
+
+        print(f"Generation {generation}: Best Individual = {best_individual}, Best Fitness = {best_fitness}")
+
+        parents = select_parents(population, fitness_scores)
+
+        new_population = []
+        for _ in range(population_size):
+            parent1, parent2 = random.sample(parents, 2)
+            child = crossover(parent1, parent2)
+            new_population.append(child)
+
+        for i in range(len(new_population)):
+            if random.random() < mutation_rate:
+                new_population[i] = mutate(new_population[i])
+
+        population = new_population
+        generation += 1
+
+    print("\nFinal Best Individual:", best_individual)
+    print("Final Best Fitness:", best_fitness)
+    print("Generations:", generation)
+
+
+from queue import PriorityQueue
+
+graph = {
+    'A': {'B': 2, 'C': 1},
+    'B': {'D': 4, 'E': 3},
+    'C': {'F': 1, 'G': 5},
+    'D': {'H': 2},
+    'E': {},
+    'F': {'I': 6},
+    'G': {},
+    'H': {},
+    'I': {}
+}
+
+heuristic = {
+    'A': 7,
+    'B': 6,
+    'C': 5,
+    'D': 4,
+    'E': 7,
+    'F': 3,
+    'G': 6,
+    'H': 2,
+    'I': 0
+}
+
+def a_star(graph, start, goal):
+    frontier = [(start, 0 + heuristic[start])]
+    visited = set()
+    g_costs = {start: 0}
+    came_from = {start: None}
+
+    while frontier:
+        frontier.sort(key=lambda x: x[1])
+        current_node, current_f = frontier.pop(0)
+
+        if current_node in visited:
+            continue
+
+        print(current_node, end=" ")
+        visited.add(current_node)
+
+        if current_node == goal:
+            path = []
+            while current_node is not None:
+                path.append(current_node)
+                current_node = came_from[current_node]
+            path.reverse()
+            print(f"\nGoal found with A*. Path: {path}")
+            return
+
+        for neighbor, cost in graph[current_node].items():
+            new_g_cost = g_costs[current_node] + cost
+            f_cost = new_g_cost + heuristic[neighbor]
+
+            if neighbor not in g_costs or new_g_cost < g_costs[neighbor]:
+                g_costs[neighbor] = new_g_cost
+                came_from[neighbor] = current_node
+                frontier.append((neighbor, f_cost))
+
+    print("\nGoal not found")
+
+# Tree Representation
+tree = {
+    'A': ['B', 'C'],
+    'B': ['D', 'E'],
+    'C': ['F', 'G'],
+    'D': ['H'],
+    'E': [],
+    'F': ['I'],
+    'G': [],
+    'H': [],
+    'I': []
+}
+
+# BFS Function
+def bfs(tree, start, goal):
+    visited = []  # List for visited nodes
+    queue = []    # Initialize a queue
+
+    visited.append(start)
+    queue.append(start)
+
+    while queue:
+        node = queue.pop(0)  # Dequeue
+        print(node, end=" ")
+
+        if node == goal:  # Stop if goal is found
+            print("\nGoal found!")
+            break
+
+        for neighbour in tree[node]:
+            if neighbour not in visited:
+                visited.append(neighbour)
+                queue.append(neighbour)
+
+start_node = 'A'
+goal_node = 'I'
+
+# Graph without weights for DLS
+graph2 = {
+    'A': ['B', 'C'],
+    'B': ['D', 'E'],
+    'C': ['F', 'G'],
+    'D': ['H'],
+    'E': [],
+    'F': ['I'],
+    'G': [],
+    'H': [],
+    'I': []
+}
+
+# DLS Function
+def dls(graph, start, goal, depth_limit):
+    visited = []
+
+    def dfs(node, depth):
+        if depth > depth_limit:
+            return None  # Limit reached
+
+        visited.append(node)
+
+        if node == goal:
+            print(f"Goal found with DLS. Path: {visited}")
+            return visited
+
+        for neighbor in graph.get(node, []):
+            if neighbor not in visited:
+                path = dfs(neighbor, depth + 1)
+                if path:
+                    return path
+
+        visited.pop()  # Backtrack if goal not found
+        return "Goal not found in this depth"
+
+    return dfs(start, 0)
+
+
+
+if __name__ == "__main__":
+    genetic_algorithm()
+    print("\nFollowing is the A* Search:")
+    a_star(graph, 'A', 'I')
+    # Run BFS
+    print("\nFollowing is the Breadth-First Search (BFS):")
+    bfs(tree, start_node, goal_node)
+    
+    # Run DLS with depth limit 3
+    dls(graph2, 'A', 'I', 3)
